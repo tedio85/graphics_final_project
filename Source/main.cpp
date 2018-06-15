@@ -79,7 +79,20 @@ void My_Init()
 	// enable face culling
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
+
+
+	// turn on MSAA for anti-aliasing
+	glEnable(GL_MULTISAMPLE);
+	glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
+
+	// detect current settings
+	GLint iMultiSample = 0;
+	GLint iNumSamples = 0;
+	glGetIntegerv(GL_SAMPLE_BUFFERS, &iMultiSample);
+	glGetIntegerv(GL_SAMPLES, &iNumSamples);
+	printf("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d\n", iMultiSample, iNumSamples);
     
+
     // load shaders and program
     program = glCreateProgram();
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -102,9 +115,11 @@ void My_Init()
     um4p = glGetUniformLocation(program, "um4p");
     um4mv = glGetUniformLocation(program, "um4mv");
     
+
     // load model
     model = new Model(modelDir, modelFile);
     
+
     // configure lighting
 	light.useDefaultSettings();
 	light.getUniformLocations(program);
@@ -295,10 +310,11 @@ int main(int argc, char *argv[])
 	// Initialize GLUT and GLEW, then create a window.
 	////////////////////
 	glutInit(&argc, argv);
+	glutSetOption(GLUT_MULTISAMPLE, 8);
 #ifdef _MSC_VER
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE);
 #else
-    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
+    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE);
 #endif
 	glutInitWindowPosition(100, 100);
 	glutInitWindowSize(600, 600);
