@@ -4,6 +4,7 @@
     <ClCompile Include="..\Source\header_only.cpp" />
     <ClCompile Include="..\Source\main.cpp" />
     <ClCompile Include="..\Source\load_utils.cpp" />
+    <ClCompile Include="..\Source\light.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Assets\fragment.fs.glsl" />
@@ -11,5 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Source\load_utils.hpp" />
+    <ClInclude Include="..\Source\light.h" />
   </ItemGroup>
 </Project>

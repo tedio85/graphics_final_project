@@ -82,6 +82,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Source\header_only.cpp" />
+    <ClCompile Include="..\Source\light.cpp" />
     <ClCompile Include="..\Source\load_utils.cpp" />
     <ClCompile Include="..\Source\main.cpp" />
   </ItemGroup>
@@ -90,6 +91,7 @@
     <None Include="..\..\Assets\vertex.vs.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Source\light.h" />
     <ClInclude Include="..\Source\load_utils.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

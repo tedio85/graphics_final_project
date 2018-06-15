@@ -1,5 +1,6 @@
 #include "../Externals/Include/Include.h"
 #include "load_utils.hpp"
+#include "light.h"
 #include <ctime>
 
 #define MENU_TIMER_START 1
@@ -45,22 +46,8 @@ char modelDir[] = "../Assets/street/";
 char modelFile[] = "unityexport2.obj";
 
 // lighting
-typedef struct _light{
-    vec3 pos;
-    vec3 diffuse_albedo;
-    vec3 specular_albedo;
-    float specular_power;
-} Light;
-
-typedef struct _light_uniform{
-    GLuint light_pos;
-    GLuint diffuse_albedo;
-    GLuint specular_albedo;
-    GLuint specular_power;
-} Luniform;
-
 Light light;
-Luniform luni;
+
 
 char** loadShaderSource(const char* file)
 {
@@ -90,8 +77,8 @@ void My_Init()
 	glDepthFunc(GL_LEQUAL);
 
 	// enable face culling
-	//glEnable(GL_CULL_FACE);
-	//glCullFace(GL_BACK);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
     
     // load shaders and program
     program = glCreateProgram();
@@ -118,17 +105,11 @@ void My_Init()
     // load model
     model = new Model(modelDir, modelFile);
     
-    // set light properties
-    light.pos = vec3(20.0f, 20.0f, 20.0f);
-    light.diffuse_albedo = vec3(0.5f, 0.5f, 0.5f);
-    light.specular_albedo = vec3(1.0f, 1.0f, 1.0f);
-    light.specular_power = 60.0f;
-    
-    // get light uniform location
-    luni.light_pos = glGetUniformLocation(program, "light_pos");
-    luni.diffuse_albedo = glGetUniformLocation(program, "diffuse_albedo");
-    luni.specular_albedo = glGetUniformLocation(program, "specular_albedo");
-    luni.specular_power = glGetUniformLocation(program, "specular_power");
+    // configure lighting
+	light.useDefaultSettings();
+	light.getUniformLocations(program);
+   
+
 }
 
 // recalculate the view matrix
@@ -157,11 +138,7 @@ void My_Display()
     glUniformMatrix4fv(um4p, 1, GL_FALSE, value_ptr(projMat));
     glUniformMatrix4fv(um4mv, 1, GL_FALSE, value_ptr(viewMat * modelMat));
     
-    // set light uniforms
-    glUniform3fv(luni.light_pos, 1, &light.pos[0]);
-    glUniform3fv(luni.specular_albedo, 1, &light.specular_albedo[0]);
-    glUniform3fv(luni.diffuse_albedo, 1,  &light.diffuse_albedo[0]);
-    glUniform1f(luni.specular_power, light.specular_power);
+	light.setUniforms();
 	
 
     // render model
