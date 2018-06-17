@@ -38,7 +38,7 @@ void Texture::set_tex(TextureData *content)
 
 ///////////////////////// Mesh //////////////////////////////////////
 // modified code based on https://learnopengl.com/Model-Loading/Mesh
-Mesh::Mesh(vector<Vertex> vecs, vector<int> inds, vector<GLuint> texs)
+Mesh::Mesh(vector<Vertex> vecs, vector<int> inds, vector<int> texs)
 {
     this->vertices = vecs;
     this->indices = inds;
@@ -90,16 +90,19 @@ void Mesh::setup()
     
     
     //----- prepare texture
-    if(this->textures.size() == 0)
-        return;
+	if (this->textures.size() == 0) {
+		printf("texture not found\n");
+		return;
+	}
+        
 
 	this->tex = this->textures[0];
 }
 
-void Mesh::render(){
+void Mesh::render(vector<Texture> &loaded_tex){
     glBindVertexArray(this->vao);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, this->tex);
+    glBindTexture(GL_TEXTURE_2D, loaded_tex[this->tex].tex);
     
     glDrawElements(GL_TRIANGLES, this->indices.size(), GL_UNSIGNED_INT, 0);
     
@@ -142,6 +145,25 @@ Model::Model(char *mdlDir, char *mdlFile){
         return;
     }
     
+	// load all textures
+
+	for (unsigned int i = 0; i < scene->mNumMaterials; ++i) {
+		aiMaterial *material = scene->mMaterials[i];
+		Texture mmaterial;
+		aiString texturePath;
+
+		if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == aiReturn_SUCCESS) {
+			string load_path = string(this->dir) + string(texturePath.C_Str());
+			TextureData tex = loadPNG(load_path.c_str());
+			glGenTextures(1, &mmaterial.tex);
+			glBindTexture(GL_TEXTURE_2D, mmaterial.tex);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tex.width, tex.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex.data);
+			glGenerateMipmap(GL_TEXTURE_2D);
+		}
+		loaded_tex.push_back(mmaterial);
+	}
+
+
     processNode(scene->mRootNode, scene);
 
 	printf("model has %d meshes\n", this->meshes.size());
@@ -152,7 +174,7 @@ Model::Model(char *mdlDir, char *mdlFile){
 void Model::render(){
     
     for(auto mesh:this->meshes){
-        mesh.render();
+        mesh.render(loaded_tex);
     }
 }
 
@@ -183,7 +205,7 @@ void Model::processNode(aiNode *node, const aiScene *scene){
 Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene){
     vector<Vertex> verts;
     vector<int> inds;
-    vector<GLuint> tex;
+    vector<int> tex;
     
     // set vertex
     for(unsigned int i=0; i<mesh->mNumVertices; i++){
@@ -224,6 +246,9 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene){
     
     // set material
 	
+	int matIdx = mesh->mMaterialIndex;
+	tex.push_back(matIdx);
+	/*
     if(mesh->mMaterialIndex){
         aiMaterial *mat = scene->mMaterials[mesh->mMaterialIndex];
         vector<GLuint> diffuseMaps = loadMatTextures(mat,
@@ -235,7 +260,8 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene){
                                                        "texture_specular");
         tex.insert(tex.end(), specularMaps.begin(), specularMaps.end());
     }
-    
+    */
+
     return Mesh(verts, inds, tex);
 }
 

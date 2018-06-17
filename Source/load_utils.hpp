@@ -54,11 +54,11 @@ class Mesh{
 public:
     vector<Vertex>      vertices;
     vector<int>         indices;
-    vector<GLuint>      textures;
+    vector<int>      textures;
     
-    Mesh(vector<Vertex> vecs, vector<int> inds, vector<GLuint> texs);
+	Mesh(vector<Vertex> vecs, vector<int> inds, vector<int> texs);
 	void setup();
-    void render();
+    void render(vector<Texture> &loaded_tex);
     void print();
     
 private:

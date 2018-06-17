@@ -42,8 +42,8 @@ int lastX, lastY;
 
 // load model
 Model *model;
-char modelDir[] = "../Assets/street/";
-char modelFile[] = "unityexport2.obj";
+char modelDir[] = "../Assets/city_block/";
+char modelFile[] = "city_block.obj";
 
 // lighting
 Light light;
