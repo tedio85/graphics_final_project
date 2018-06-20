@@ -62,6 +62,8 @@ FrameBuffer *shadowBuffer;
 FPS_Counter *counter;
 
 
+// function declarations
+void createProgram(GLuint &program, char *vs_path, char *fs_path);
 
 
 char** loadShaderSource(const char* file)
@@ -123,21 +125,10 @@ void My_Init()
 
 
     // load shaders and program
-    program = glCreateProgram();
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    char** vertexShaderSource = loadShaderSource("vertex.vs.glsl");
-    char** fragmentShaderSource = loadShaderSource("fragment.fs.glsl");
-    glShaderSource(vertexShader, 1, vertexShaderSource, NULL);
-    glShaderSource(fragmentShader, 1, fragmentShaderSource, NULL);
-    freeShaderSource(vertexShaderSource);
-    freeShaderSource(fragmentShaderSource);
-    glCompileShader(vertexShader);
-    glCompileShader(fragmentShader);
-    glAttachShader(program, vertexShader);
-    glAttachShader(program, fragmentShader);
-    glLinkProgram(program);
-    glUseProgram(program);
+	char vs_path[] = "vertex.vs.glsl";
+	char fs_path[] = "fragment.fs.glsl";
+	createProgram(program, vs_path, fs_path);
+	glUseProgram(program);
     
     
     // get uniform location
@@ -159,6 +150,25 @@ void My_Init()
 	shadowBuffer = new FrameBuffer();
 	//shadowBuffer->resetShadowFBO(600, 600);
 
+}
+
+// create a new shader program with specified vertex shader path
+// and fragment shader path
+void createProgram(GLuint &program, char *vs_path, char *fs_path) {
+	program = glCreateProgram();
+	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	char** vertexShaderSource = loadShaderSource(vs_path);
+	char** fragmentShaderSource = loadShaderSource(fs_path);
+	glShaderSource(vertexShader, 1, vertexShaderSource, NULL);
+	glShaderSource(fragmentShader, 1, fragmentShaderSource, NULL);
+	freeShaderSource(vertexShaderSource);
+	freeShaderSource(fragmentShaderSource);
+	glCompileShader(vertexShader);
+	glCompileShader(fragmentShader);
+	glAttachShader(program, vertexShader);
+	glAttachShader(program, fragmentShader);
+	glLinkProgram(program);
 }
 
 // recalculate the view matrix
