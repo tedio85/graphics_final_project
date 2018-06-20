@@ -16,8 +16,12 @@ GLubyte timer_cnt = 0;
 bool timer_enabled = true;
 unsigned int timer_speed = 16;
 
+// debug
+int cnt = 0;
+
 // program
-GLuint program;
+GLuint program_shadow;
+GLuint program_window;
 
 // model view matrices
 GLuint um4p;
@@ -56,7 +60,11 @@ char planetFile[] = "Sphere.obj";
 Light light;
 
 // shadow mapping
+GLuint depth_mvp;
 FrameBuffer *shadowBuffer;
+float near_plane = 0.0f;
+float far_plane = 100.0f;
+mat4 lightProj = ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);	// projection matrix of light
 
 // fps counter
 FPS_Counter *counter;
@@ -113,28 +121,36 @@ void My_Init()
 	glEnable(GL_MULTISAMPLE);
 	glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
 
-	// detect current settings
+	// detect current settings of MSAA
 	GLint iMultiSample = 0;
 	GLint iNumSamples = 0;
 	glGetIntegerv(GL_SAMPLE_BUFFERS, &iMultiSample);
 	glGetIntegerv(GL_SAMPLES, &iNumSamples);
 	printf("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d\n", iMultiSample, iNumSamples);
     
+	// for shadow mapping
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(4.0f, 4.0f);
+
 	// initialize timer
 	counter = new FPS_Counter();
 
 
     // load shaders and program
+	char vs_depth_path[] = "vertex_depth.vs.glsl";
+	char fs_depth_path[] = "fragment_depth.fs.glsl";
+	createProgram(program_window, vs_depth_path, fs_depth_path);
+
 	char vs_path[] = "vertex.vs.glsl";
 	char fs_path[] = "fragment.fs.glsl";
-	createProgram(program, vs_path, fs_path);
-	glUseProgram(program);
-    
-    
+	createProgram(program_window, vs_path, fs_path);
+	glUseProgram(program_window);
+
+
     // get uniform location
-    um4p = glGetUniformLocation(program, "um4p");
-    um4mv = glGetUniformLocation(program, "um4mv");
-    
+    um4p = glGetUniformLocation(program_window, "um4p");
+    um4mv = glGetUniformLocation(program_window, "um4mv");
+	depth_mvp = glGetUniformLocation(program_shadow, "mvp");
 
     // load model
     model = new Model(modelDir, modelFile);
@@ -144,11 +160,11 @@ void My_Init()
 
     // configure lighting
 	light.useDefaultSettings();
-	light.getUniformLocations(program);
+	light.getUniformLocations(program_window);
    
 	// configure shadow fbo
 	shadowBuffer = new FrameBuffer();
-	//shadowBuffer->resetShadowFBO(600, 600);
+	shadowBuffer->resetShadowFBO(600, 600);
 
 }
 
@@ -193,18 +209,41 @@ void My_Display()
 {
 	counter->get_start_frequency();
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+	///////// 1st pass: render depth map from light view ///////////
+
+	shadowBuffer->bind_and_clear_draw_buffer();
+	glUseProgram(program_shadow);
+
     // set uniforms
-    glUniformMatrix4fv(um4p, 1, GL_FALSE, value_ptr(projMat));
-    glUniformMatrix4fv(um4mv, 1, GL_FALSE, value_ptr(viewMat * modelMat));
-    
-	light.setUniforms();
-	
+	mat4 lightView = lookAt(light.settings.pos, vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
+	mat4 lightVP = lightProj * lightView;
+	glUniformMatrix4fv(depth_mvp, 1, GL_FALSE, value_ptr(lightVP));
+
 
     // render model
 	model->render();
 	//planet->render();
+
+	if (cnt % 100 == 0) {
+		cnt++;
+		shadowBuffer->FBO_2_PPM_file(600, 600, "./test.ppm");
+	}
+
+	// unbind framebuffer
+	shadowBuffer->unbind_draw_buffer();
+
+	///////// 2nd pass: render object from camera view ///////////
+	glUseProgram(program_window);
+
+	// set uniforms
+	glUniformMatrix4fv(um4p, 1, GL_FALSE, value_ptr(projMat));
+	glUniformMatrix4fv(um4mv, 1, GL_FALSE, value_ptr(viewMat * modelMat));
+	light.setUniforms();
+
+	// render model
+	model->render();
+	//planet->render();
+
 
 
 	// display fps
@@ -223,6 +262,10 @@ void My_Reshape(int width, int height)
     
     float viewportAspect = (float)width / (float)height;
     projMat = perspective(radians(60.0f), viewportAspect, 0.1f, 1000.0f);
+
+	// reset FBO
+	shadowBuffer->resetShadowFBO(width, height);
+
     refreshView();
 }
 
