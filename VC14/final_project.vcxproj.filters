@@ -5,13 +5,17 @@
     <ClCompile Include="..\Source\main.cpp" />
     <ClCompile Include="..\Source\load_utils.cpp" />
     <ClCompile Include="..\Source\light.cpp" />
+    <ClCompile Include="..\Source\UI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Assets\fragment.fs.glsl" />
     <None Include="..\..\Assets\vertex.vs.glsl" />
+    <None Include="..\Assets\fbofrag.fs.glsl" />
+    <None Include="..\Assets\fbovert.vs.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Source\load_utils.hpp" />
     <ClInclude Include="..\Source\light.h" />
+    <ClInclude Include="..\Source\UI.hpp" />
   </ItemGroup>
 </Project>

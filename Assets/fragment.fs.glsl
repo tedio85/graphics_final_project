@@ -44,4 +44,5 @@ void main()
     vec3 texColor = texture(tex,vertexData.texcoord).rgb;
     vec3 result = (ambient + diffuse + specular) * texColor;
     fragColor = vec4(result, 1.0);
+
 }

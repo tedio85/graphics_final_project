@@ -1,6 +1,7 @@
 #include "../Externals/Include/Include.h"
 #include "load_utils.hpp"
 #include "light.h"
+#include "UI.hpp"
 #include <ctime>
 
 #define MENU_TIMER_START 1
@@ -48,6 +49,15 @@ char modelFile[] = "city_block.obj";
 // lighting
 Light light;
 
+//UI
+UI *ui;
+static const GLfloat window_positions[16] =
+{
+	1.0f,-1.0f,1.0f,0.0f,
+	-1.0f,-1.0f,0.0f,0.0f,
+	-1.0f,1.0f,0.0f,1.0f,
+	1.0f,1.0f,1.0f,1.0f
+};
 
 char** loadShaderSource(const char* file)
 {
@@ -68,7 +78,22 @@ void freeShaderSource(char** srcp)
     delete[] srcp[0];
     delete[] srcp;
 }
+void shaderLog(GLuint shader)
+{
+	GLint isCompiled = 0;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
+	if (isCompiled == GL_FALSE)
+	{
+		GLint maxLength = 0;
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
 
+		GLchar* errorLog = new GLchar[maxLength];
+		glGetShaderInfoLog(shader, maxLength, &maxLength, &errorLog[0]);
+
+		printf("%s\n", errorLog);
+		delete errorLog;
+	}
+}
 
 void My_Init()
 {
@@ -118,7 +143,9 @@ void My_Init()
 
     // load model
     model = new Model(modelDir, modelFile);
-    
+
+	//UI
+	ui = new UI();
 
     // configure lighting
 	light.useDefaultSettings();
@@ -139,26 +166,29 @@ void refreshView()
     
     
     viewMat = lookAt(cameraPos, cameraPos+cameraFront, cameraUp);
-    printf("cameraFront now at (%f, %f, %f)\n",
-           cameraFront.x, cameraFront.y, cameraFront.z);
-    printf("cameraPos now at (%f, %f, %f)\n",
-           cameraPos.x, cameraPos.y, cameraPos.z);
+    
 }
 
 void My_Display()
 {
+
+	glUseProgram(program);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+	
     // set uniforms
     glUniformMatrix4fv(um4p, 1, GL_FALSE, value_ptr(projMat));
     glUniformMatrix4fv(um4mv, 1, GL_FALSE, value_ptr(viewMat * modelMat));
     
 	light.setUniforms();
 	
-
+	
     // render model
 	model->render();
-        
+
+	//UI
+	glUseProgram(0);
+	ui->draw();
+
     glutSwapBuffers();
 }
 
@@ -182,7 +212,15 @@ void My_Mouse(int button, int state, int x, int y)
 {
 	if(state == GLUT_DOWN)
 	{
-		printf("Mouse %d is pressed at (%d, %d)\n", button, x, y);
+		if (ui->click_rain(x, y)) {
+			//â∫âJ
+
+		}
+		else if (ui->click_sun(x, y)) {
+			//ê∞ìV
+
+		}
+		
 	}
 	else if(state == GLUT_UP)
 	{

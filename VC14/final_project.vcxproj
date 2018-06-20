@@ -14,7 +14,7 @@
     <ProjectGuid>{F8376344-4D88-4DBC-832B-7D4BB528FA40}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>final_project</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
     <ProjectName>final_project</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -22,7 +22,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -85,14 +85,18 @@
     <ClCompile Include="..\Source\light.cpp" />
     <ClCompile Include="..\Source\load_utils.cpp" />
     <ClCompile Include="..\Source\main.cpp" />
+    <ClCompile Include="..\Source\UI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Assets\fragment.fs.glsl" />
     <None Include="..\..\Assets\vertex.vs.glsl" />
+    <None Include="..\Assets\fbofrag.fs.glsl" />
+    <None Include="..\Assets\fbovert.vs.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Source\light.h" />
     <ClInclude Include="..\Source\load_utils.hpp" />
+    <ClInclude Include="..\Source\UI.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
