@@ -54,7 +54,8 @@ class Mesh{
 public:
     vector<Vertex>      vertices;
     vector<int>         indices;
-    vector<int>      textures;
+    vector<int>			textures;	// indices of textures 
+									// which will be set to Mesh.tex
     
 	Mesh(vector<Vertex> vecs, vector<int> inds, vector<int> texs);
 	void setup();
@@ -63,12 +64,14 @@ public:
     
 private:
     GLuint vao, vbo, ebo;
-    GLuint tex;
+    GLuint tex;			// index of texture in Model.loaded_tex
 };
 
 class Model {
 public:
     Model(char *mdlDir, char *mdlFile);
+	void add_texture(int meshIdx, string texture_path);
+	//void transform(glm::mat4 transMat);
     void render();
     void print();
     
@@ -80,8 +83,6 @@ private:
     Mesh processMesh(aiMesh *mesh, const aiScene *scene);
     
     TextureData loadPNG(const char* const pngFilepath);
-    vector<GLuint> loadMatTextures(aiMaterial *mat,
-                                   aiTextureType type, string typeName);
 };
 
 

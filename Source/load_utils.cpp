@@ -171,6 +171,30 @@ Model::Model(char *mdlDir, char *mdlFile){
 
 }
 
+void Model::add_texture(int meshIdx, string texture_path) {
+	Texture mmaterial;
+
+	string load_path = string(this->dir) + texture_path;
+	TextureData tex = loadPNG(load_path.c_str());
+	glGenTextures(1, &mmaterial.tex);
+	glBindTexture(GL_TEXTURE_2D, mmaterial.tex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tex.width, tex.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex.data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	loaded_tex.push_back(mmaterial);
+
+	int matIdx = loaded_tex.size() - 1;
+	meshes[meshIdx].textures[0] = matIdx;
+	meshes[meshIdx].setup();
+	//meshes[meshIdx].print();
+}
+
+/*
+void Model::transform(glm::mat4 transMat) {
+	
+}
+*/
+
 void Model::render(){
     
     for(auto mesh:this->meshes){
@@ -245,22 +269,9 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene){
     }
     
     // set material
-	
 	int matIdx = mesh->mMaterialIndex;
 	tex.push_back(matIdx);
-	/*
-    if(mesh->mMaterialIndex){
-        aiMaterial *mat = scene->mMaterials[mesh->mMaterialIndex];
-        vector<GLuint> diffuseMaps = loadMatTextures(mat,
-                                                      aiTextureType_DIFFUSE,
-                                                      "texture_diffuse");
-        tex.insert(tex.end(), diffuseMaps.begin(), diffuseMaps.end());
-        vector<GLuint> specularMaps = loadMatTextures(mat,
-                                                       aiTextureType_SPECULAR,
-                                                       "texture_specular");
-        tex.insert(tex.end(), specularMaps.begin(), specularMaps.end());
-    }
-    */
+	
 
     return Mesh(verts, inds, tex);
 }
@@ -304,47 +315,5 @@ TextureData Model::loadPNG(const char* const pngFilepath)
     }
     
     return texture;
-}
-
-vector<GLuint> Model::loadMatTextures(aiMaterial *mat,
-                                       aiTextureType type,
-                                       string typeName) {
-    vector<GLuint> v;
-    for(unsigned int i=0; i < mat->GetTextureCount(type); i++)
-    {
-        aiString str;
-        mat->GetTexture(type, i, &str);
-        Texture tex;
-        tex.id = (int)v.size()+1;
-        tex.type = typeName;
-
-        string raw_fname = string(str.C_Str());
-        replace(raw_fname.begin(), raw_fname.end(), '\\', '/');
-        tex.load_path = string(this->dir) + raw_fname;
-        
-        bool skip = false;
-		GLuint new_tex = 0;
-        for(auto t:this->loaded_tex){
-            if(t.load_path == tex.load_path){
-                skip = true;
-                tex.content = t.content;
-				new_tex = t.tex;	// new texture = old texture's GLuint
-                break;
-            }
-        }
-        
-        if(!skip){
-            TextureData *tdata = new TextureData();
-            *tdata = loadPNG(tex.load_path.c_str());
-            tex.content = tdata;
-			tex.set_tex(tdata);
-            this->loaded_tex.push_back(tex);
-
-			new_tex = tex.tex;	// new texture = texture's GLuint
-        }
-        
-        v.push_back(new_tex);
-    }
-    return v;
 }
 

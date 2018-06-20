@@ -1,5 +1,7 @@
 #include "../Externals/Include/Include.h"
 #include "load_utils.hpp"
+#include "frame_buffer.hpp"
+#include "fps_counter.h"
 #include "light.h"
 #include <ctime>
 
@@ -45,8 +47,21 @@ Model *model;
 char modelDir[] = "../Assets/city_block/";
 char modelFile[] = "city_block.obj";
 
+// load sun
+Model *planet;
+char planetDir[] = "../Assets/";
+char planetFile[] = "Sphere.obj";
+
 // lighting
 Light light;
+
+// shadow mapping
+FrameBuffer *shadowBuffer;
+
+// fps counter
+FPS_Counter *counter;
+
+
 
 
 char** loadShaderSource(const char* file)
@@ -69,6 +84,17 @@ void freeShaderSource(char** srcp)
     delete[] srcp;
 }
 
+// taken from http://www.codersource.net/2011/01/27/displaying-text-opengl-tutorial-5/
+void drawBitmapText(const char *string, float x, float y, float z)
+{
+	const char *c;
+	glRasterPos3f(x, y, z);
+
+	for (c = string; *c != '\0'; c++)
+	{
+		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *c);
+	}
+}
 
 void My_Init()
 {
@@ -92,6 +118,9 @@ void My_Init()
 	glGetIntegerv(GL_SAMPLES, &iNumSamples);
 	printf("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d\n", iMultiSample, iNumSamples);
     
+	// initialize timer
+	counter = new FPS_Counter();
+
 
     // load shaders and program
     program = glCreateProgram();
@@ -118,12 +147,17 @@ void My_Init()
 
     // load model
     model = new Model(modelDir, modelFile);
+	planet = new Model(planetDir, planetFile);
+	planet -> add_texture(0, "8k_sun.jpg");
     
 
     // configure lighting
 	light.useDefaultSettings();
 	light.getUniformLocations(program);
    
+	// configure shadow fbo
+	shadowBuffer = new FrameBuffer();
+	//shadowBuffer->resetShadowFBO(600, 600);
 
 }
 
@@ -147,6 +181,8 @@ void refreshView()
 
 void My_Display()
 {
+	counter->get_start_frequency();
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     // set uniforms
@@ -158,7 +194,15 @@ void My_Display()
 
     // render model
 	model->render();
-        
+	//planet->render();
+
+
+	// display fps
+	counter->get_end_frequency();
+	char buffer[100] = {};
+	sprintf(buffer, "each call of My_Display() takes %.2e seconds", counter->get_frametime());
+	drawBitmapText(buffer, -0.9, 0.95, 0);
+    
     glutSwapBuffers();
 }
 
@@ -318,7 +362,7 @@ int main(int argc, char *argv[])
 #endif
 	glutInitWindowPosition(100, 100);
 	glutInitWindowSize(600, 600);
-	glutCreateWindow("AS2_Framework"); // You cannot use OpenGL functions before this line; The OpenGL context must be created first by glutCreateWindow()!
+	glutCreateWindow("final_project"); // You cannot use OpenGL functions before this line; The OpenGL context must be created first by glutCreateWindow()!
 #ifdef _MSC_VER
 	glewInit();
 #endif

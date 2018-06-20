@@ -81,6 +81,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Source\fps_counter.cpp" />
+    <ClCompile Include="..\Source\frame_buffer.cpp" />
     <ClCompile Include="..\Source\header_only.cpp" />
     <ClCompile Include="..\Source\light.cpp" />
     <ClCompile Include="..\Source\load_utils.cpp" />
@@ -89,8 +91,12 @@
   <ItemGroup>
     <None Include="..\..\Assets\fragment.fs.glsl" />
     <None Include="..\..\Assets\vertex.vs.glsl" />
+    <None Include="..\Assets\fragment_depth.fs.glsl" />
+    <None Include="..\Assets\vertex_depth.vs.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Source\fps_counter.h" />
+    <ClInclude Include="..\Source\frame_buffer.hpp" />
     <ClInclude Include="..\Source\light.h" />
     <ClInclude Include="..\Source\load_utils.hpp" />
   </ItemGroup>
