@@ -297,9 +297,9 @@ TextureData Model::loadPNG(const char* const pngFilepath)
         memcpy(texture.data, data, dataSize);
         
         // mirror the image vertically to comply with OpenGL convention
-        for (size_t i = 0; i < texture.width; ++i)
+        for (size_t i = 0; i < (size_t)texture.width; ++i)
         {
-            for (size_t j = 0; j < texture.height / 2; ++j)
+            for (size_t j = 0; j < (size_t)texture.height / 2; ++j)
             {
                 for (size_t k = 0; k < 4; ++k)
                 {

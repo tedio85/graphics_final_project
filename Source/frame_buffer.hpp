@@ -17,7 +17,6 @@ typedef struct _frame_buffer{
     
     _frame_buffer();   // constructor
     void resetFBO(int width, int height);   // reset fbo when screen size changes
-	void resetShadowFBO(int width, int height);	// fbo specifically used for drawing shadows
     void bind_and_clear_draw_buffer();
     void unbind_draw_buffer();
     void bind_fbo_texture();

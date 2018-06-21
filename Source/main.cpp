@@ -1,6 +1,7 @@
 #include "../Externals/Include/Include.h"
 #include "load_utils.hpp"
 #include "frame_buffer.hpp"
+#include "depth_fbo.h"
 #include "fps_counter.h"
 #include "light.h"
 #include <ctime>
@@ -61,10 +62,13 @@ Light light;
 
 // shadow mapping
 GLuint depth_mvp;
-FrameBuffer *shadowBuffer;
+GLuint depth_fbo, depth_tex;
 float near_plane = 0.0f;
 float far_plane = 100.0f;
 mat4 lightProj = ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);	// projection matrix of light
+GLuint shadow_matrix;
+mat4 shadowMat;
+
 
 // fps counter
 FPS_Counter *counter;
@@ -72,7 +76,6 @@ FPS_Counter *counter;
 
 // function declarations
 void createProgram(GLuint &program, char *vs_path, char *fs_path);
-
 
 char** loadShaderSource(const char* file)
 {
@@ -139,18 +142,20 @@ void My_Init()
     // load shaders and program
 	char vs_depth_path[] = "vertex_depth.vs.glsl";
 	char fs_depth_path[] = "fragment_depth.fs.glsl";
-	createProgram(program_window, vs_depth_path, fs_depth_path);
+	createProgram(program_shadow, vs_depth_path, fs_depth_path);
 
 	char vs_path[] = "vertex.vs.glsl";
 	char fs_path[] = "fragment.fs.glsl";
 	createProgram(program_window, vs_path, fs_path);
-	glUseProgram(program_window);
+	//glUseProgram(program_window);
 
 
     // get uniform location
     um4p = glGetUniformLocation(program_window, "um4p");
     um4mv = glGetUniformLocation(program_window, "um4mv");
+	shadow_matrix = glGetUniformLocation(program_window, "shadow_matrix");
 	depth_mvp = glGetUniformLocation(program_shadow, "mvp");
+
 
     // load model
     model = new Model(modelDir, modelFile);
@@ -162,10 +167,10 @@ void My_Init()
 	light.useDefaultSettings();
 	light.getUniformLocations(program_window);
    
-	// configure shadow fbo
-	shadowBuffer = new FrameBuffer();
-	shadowBuffer->resetShadowFBO(600, 600);
-
+	// configure variables for shadow mapping
+	shadowMat = translate(mat4(), vec3(0.5f));
+	shadowMat = scale(shadowMat, vec3(0.5f));
+	configure_depth_fbo(600, 600);
 }
 
 // create a new shader program with specified vertex shader path
@@ -210,40 +215,43 @@ void My_Display()
 	counter->get_start_frequency();
 
 	///////// 1st pass: render depth map from light view ///////////
-
-	shadowBuffer->bind_and_clear_draw_buffer();
+	
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(program_shadow);
+
+	// bind frame buffer
+	glBindFramebuffer(GL_FRAMEBUFFER, depth_fbo);
 
     // set uniforms
 	mat4 lightView = lookAt(light.settings.pos, vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
-	mat4 lightVP = lightProj * lightView;
-	glUniformMatrix4fv(depth_mvp, 1, GL_FALSE, value_ptr(lightVP));
-
+	glUniformMatrix4fv(depth_mvp, 1, GL_FALSE, value_ptr(lightProj * lightView));
 
     // render model
 	model->render();
-	//planet->render();
-
-	if (cnt % 100 == 0) {
-		cnt++;
-		shadowBuffer->FBO_2_PPM_file(600, 600, "./test.ppm");
-	}
 
 	// unbind framebuffer
-	shadowBuffer->unbind_draw_buffer();
-
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	
 	///////// 2nd pass: render object from camera view ///////////
+	
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(program_window);
+
+	glUniform1i(glGetUniformLocation(program_window, "tex"), 0);
+	glUniform1i(glGetUniformLocation(program_window, "shadow_tex"), 1);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, depth_tex);
 
 	// set uniforms
 	glUniformMatrix4fv(um4p, 1, GL_FALSE, value_ptr(projMat));
 	glUniformMatrix4fv(um4mv, 1, GL_FALSE, value_ptr(viewMat * modelMat));
 	light.setUniforms();
+	glUniformMatrix4fv(shadow_matrix, 1, GL_FALSE, value_ptr(shadowMat));
 
 	// render model
 	model->render();
-	//planet->render();
-
+	
 
 
 	// display fps
@@ -251,7 +259,7 @@ void My_Display()
 	char buffer[100] = {};
 	sprintf(buffer, "each call of My_Display() takes %.2e seconds", counter->get_frametime());
 	drawBitmapText(buffer, -0.9, 0.95, 0);
-    
+	
     glutSwapBuffers();
 }
 
@@ -263,8 +271,7 @@ void My_Reshape(int width, int height)
     float viewportAspect = (float)width / (float)height;
     projMat = perspective(radians(60.0f), viewportAspect, 0.1f, 1000.0f);
 
-	// reset FBO
-	shadowBuffer->resetShadowFBO(width, height);
+	reset_depth_fbo(width, height);
 
     refreshView();
 }

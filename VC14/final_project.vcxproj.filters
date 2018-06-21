@@ -7,6 +7,7 @@
     <ClCompile Include="..\Source\light.cpp" />
     <ClCompile Include="..\Source\fps_counter.cpp" />
     <ClCompile Include="..\Source\frame_buffer.cpp" />
+    <ClCompile Include="..\Source\depth_fbo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Assets\fragment.fs.glsl" />
@@ -19,5 +20,6 @@
     <ClInclude Include="..\Source\light.h" />
     <ClInclude Include="..\Source\fps_counter.h" />
     <ClInclude Include="..\Source\frame_buffer.hpp" />
+    <ClInclude Include="..\Source\depth_fbo.h" />
   </ItemGroup>
 </Project>

@@ -44,42 +44,6 @@ void _frame_buffer::resetFBO(int width, int height){
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBODataTexture, 0);
 }
 
-void _frame_buffer::resetShadowFBO(int width, int height) {
-	// reset & bind
-	glDeleteRenderbuffers(1, &depthRBO);
-	glDeleteTextures(1, &FBODataTexture);
-	glGenRenderbuffers(1, &depthRBO);
-	glBindRenderbuffer(GL_RENDERBUFFER, depthRBO);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, width, height);
-
-
-	// generate a texture for FBO to write in
-	glGenTextures(1, &FBODataTexture);
-	glBindTexture(GL_TEXTURE_2D, FBODataTexture);
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-
-	//--- specifically for shadow buffers
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-
-	//--------------
-
-	// bind the frame buffer
-	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-
-
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRBO);
-
-	// attach a texture image to a framebuffer object
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBODataTexture, 0);
-}
-
 void _frame_buffer::bind_and_clear_draw_buffer(){
     
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBO);

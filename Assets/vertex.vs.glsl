@@ -7,6 +7,8 @@ layout(location = 2) in vec3 iv3normal;
 uniform mat4 um4mv;
 uniform mat4 um4p;
 
+uniform mat4 shadow_matrix;
+
 uniform vec3 light_pos; // light position in world space
 
 out VertexData
@@ -15,6 +17,7 @@ out VertexData
     vec3 L; // view space light vector
     vec3 V;
     vec2 texcoord;
+    vec4 shadow_coord;
 } vertexData;
 
 void main()
@@ -39,4 +42,8 @@ void main()
 
 
     vertexData.texcoord = iv2tex_coord;
+
+
+    // light-space coordinates
+    vertexData.shadow_coord = shadow_matrix * vec4(iv3vertex, 1.0);
 }

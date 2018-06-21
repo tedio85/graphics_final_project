@@ -1,6 +1,8 @@
 #version 410
 
 layout(location = 0) out vec4 fragColor;
+uniform sampler2D tex;
+uniform sampler2DShadow shadow_tex;
 
 uniform mat4 um4mv;
 uniform mat4 um4p;
@@ -11,6 +13,7 @@ in VertexData
     vec3 L; // eye space light vector
     vec3 V; // eye space halfway vector
     vec2 texcoord;
+    vec4 shadow_coord;
 } vertexData;
 
 // light settings
@@ -23,11 +26,9 @@ uniform vec3 k_diff;    // diffuse coefficient
 uniform vec3 k_spec;    // specular coefficient
 uniform float pow_spec;
 
-
-uniform sampler2D tex;
-
 void main()
 {
+
     // Normalize the incoming N, L and V vectors
     vec3 N = normalize(vertexData.N);
     vec3 L = normalize(vertexData.L);
@@ -44,4 +45,9 @@ void main()
     vec3 texColor = texture(tex,vertexData.texcoord).rgb;
     vec3 result = (ambient + diffuse + specular) * texColor;
     fragColor = vec4(result, 1.0);
+
+
+    //fragColor = textureProj(shadow_tex, vertexData.shadow_coord) * vec4(result, 1.0);
+
+    //fragColor = vertexData.shadow_coord;
 }

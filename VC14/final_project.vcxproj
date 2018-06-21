@@ -81,6 +81,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Source\depth_fbo.cpp" />
     <ClCompile Include="..\Source\fps_counter.cpp" />
     <ClCompile Include="..\Source\frame_buffer.cpp" />
     <ClCompile Include="..\Source\header_only.cpp" />
@@ -95,6 +96,7 @@
     <None Include="..\Assets\vertex_depth.vs.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Source\depth_fbo.h" />
     <ClInclude Include="..\Source\fps_counter.h" />
     <ClInclude Include="..\Source\frame_buffer.hpp" />
     <ClInclude Include="..\Source\light.h" />
