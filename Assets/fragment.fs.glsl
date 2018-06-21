@@ -42,9 +42,12 @@ void main()
     vec3 specular = pow(max(dot(N, H), 0.0), pow_spec) * k_spec * light_color;
 
     // Write final color to the framebuffer
-    vec3 texColor = texture(tex,vertexData.texcoord).rgb;
-    vec3 result = (ambient + diffuse + specular) * texColor;
-    fragColor = vec4(result, 1.0);
+    //vec3 texColor = texture(tex,vertexData.texcoord).rgb;
+    //vec3 result = (ambient + diffuse + specular) * texColor;
+    //fragColor = vec4(result, 1.0);
+
+    float shadow_factor = textureProj(shadow_tex, vertexData.shadow_coord);
+    fragColor = vec4(ambient, 1.0) + shadow_factor * vec4(diffuse + specular, 1.0);
 
 
     //fragColor = textureProj(shadow_tex, vertexData.shadow_coord) * vec4(result, 1.0);

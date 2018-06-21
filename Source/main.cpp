@@ -20,6 +20,20 @@ unsigned int timer_speed = 16;
 // debug
 int cnt = 0;
 
+
+GLuint window_vao, window_buffer;
+GLuint program_debug;
+float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+						 // positions   // texCoords
+	-1.0f,  1.0f,  0.0f, 1.0f,
+	-1.0f, -1.0f,  0.0f, 0.0f,
+	1.0f, -1.0f,  1.0f, 0.0f,
+
+	-1.0f,  1.0f,  0.0f, 1.0f,
+	1.0f, -1.0f,  1.0f, 0.0f,
+	1.0f,  1.0f,  1.0f, 1.0f
+};
+
 // program
 GLuint program_shadow;
 GLuint program_window;
@@ -63,6 +77,7 @@ Light light;
 // shadow mapping
 GLuint depth_mvp;
 GLuint depth_fbo, depth_tex;
+extern const unsigned int SHADOW_WIDTH, SHADOW_HEIGHT;
 float near_plane = 0.0f;
 float far_plane = 100.0f;
 mat4 lightProj = ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);	// projection matrix of light
@@ -147,7 +162,11 @@ void My_Init()
 	char vs_path[] = "vertex.vs.glsl";
 	char fs_path[] = "fragment.fs.glsl";
 	createProgram(program_window, vs_path, fs_path);
-	//glUseProgram(program_window);
+
+	char vs_path2[] = "vertex2.vs.glsl";
+	char fs_path2[] = "fragment2.fs.glsl";
+	createProgram(program_debug, vs_path2, fs_path2);
+	
 
 
     // get uniform location
@@ -170,7 +189,23 @@ void My_Init()
 	// configure variables for shadow mapping
 	shadowMat = translate(mat4(), vec3(0.5f));
 	shadowMat = scale(shadowMat, vec3(0.5f));
-	configure_depth_fbo(600, 600);
+	configure_depth_fbo();
+
+
+	/////////////////////////////////////////////////
+	// prepare vao & vbo for window
+	glGenVertexArrays(1, &window_vao);
+	glBindVertexArray(window_vao);
+
+	glGenBuffers(1, &window_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, window_buffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
 }
 
 // create a new shader program with specified vertex shader path
@@ -215,16 +250,17 @@ void My_Display()
 	counter->get_start_frequency();
 
 	///////// 1st pass: render depth map from light view ///////////
-	
+	// my version
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 	glUseProgram(program_shadow);
-
-	// bind frame buffer
-	glBindFramebuffer(GL_FRAMEBUFFER, depth_fbo);
 
     // set uniforms
 	mat4 lightView = lookAt(light.settings.pos, vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
 	glUniformMatrix4fv(depth_mvp, 1, GL_FALSE, value_ptr(lightProj * lightView));
+
+	// bind frame buffer
+	glBindFramebuffer(GL_FRAMEBUFFER, depth_fbo);
 
     // render model
 	model->render();
@@ -232,8 +268,36 @@ void My_Display()
 	// unbind framebuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	
-	///////// 2nd pass: render object from camera view ///////////
+
+	/*
+	// TA's version
+	vec3 light_position = vec3(20.0f, 20.0f, 20.0f);
+	mat4 light_proj_matrix = ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 100.0f); 
+	mat4 light_view_matrix = lookAt(light_position, vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+	glEnable(GL_DEPTH_TEST);
+	glBindFramebuffer(GL_FRAMEBUFFER, depth_fbo); 
+	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT); 
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(4.0f, 4.0f);
+	glUseProgram(program_shadow);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	mat4 light_vp_matrix = light_proj_matrix * light_view_matrix;
+	*/
+	//model->render();
+
+
+	////////////////////// visualize //////////////////////////////
+	int width = glutGet(GLUT_WINDOW_WIDTH);
+	int height = glutGet(GLUT_WINDOW_HEIGHT);
+	glViewport(0, 0, width, height);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glUseProgram(program_debug);
+	glBindTexture(GL_TEXTURE_2D, depth_tex);
+	glBindVertexArray(window_vao);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
 	
+	///////// 2nd pass: render object from camera view ///////////
+	/*
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(program_window);
 
@@ -251,8 +315,7 @@ void My_Display()
 
 	// render model
 	model->render();
-	
-
+	*/
 
 	// display fps
 	counter->get_end_frequency();
@@ -269,9 +332,7 @@ void My_Reshape(int width, int height)
 	glViewport(0, 0, width, height);
     
     float viewportAspect = (float)width / (float)height;
-    projMat = perspective(radians(60.0f), viewportAspect, 0.1f, 1000.0f);
-
-	reset_depth_fbo(width, height);
+	projMat = perspective(radians(60.0f), viewportAspect, 0.1f, 1000.0f);
 
     refreshView();
 }
