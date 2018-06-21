@@ -7,6 +7,28 @@
 #define MENU_TIMER_START 1
 #define MENU_TIMER_STOP 2
 #define MENU_EXIT 3
+#define SHADOW_MAP_SIZE 4096
+
+struct
+{
+	struct
+	{
+		mat4 view;
+		mat4 proj;
+	} eye;
+} matrices;
+
+struct
+{
+	int width;
+	int height;
+} viewportSize;
+
+struct
+{
+	GLuint fbo;
+	GLuint depthMap;
+} shadowBuffer;
 
 using namespace glm;
 using namespace std;
@@ -17,6 +39,7 @@ unsigned int timer_speed = 16;
 
 // program
 GLuint program;
+GLuint program_depth;
 
 // model view matrices
 GLuint um4p;
@@ -48,6 +71,8 @@ char modelFile[] = "city_block.obj";
 
 // lighting
 Light light;
+
+
 
 //UI
 UI *ui;
@@ -134,6 +159,22 @@ void My_Init()
     glAttachShader(program, fragmentShader);
     glLinkProgram(program);
     glUseProgram(program);
+
+	program_depth = glCreateProgram();
+	vertexShader = glCreateShader(GL_VERTEX_SHADER);
+	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	vertexShaderSource = loadShaderSource("vertex_depth.vs.glsl");
+	fragmentShaderSource = loadShaderSource("fragment_depth.fs.glsl");
+	glShaderSource(vertexShader, 1, vertexShaderSource, NULL);
+	glShaderSource(fragmentShader, 1, fragmentShaderSource, NULL);
+	freeShaderSource(vertexShaderSource);
+	freeShaderSource(fragmentShaderSource);
+	glCompileShader(vertexShader);
+	glCompileShader(fragmentShader);
+	glAttachShader(program_depth, vertexShader);
+	glAttachShader(program_depth, fragmentShader);
+	glLinkProgram(program_depth);
+	glUseProgram(program_depth);
     
     
     // get uniform location
@@ -151,6 +192,20 @@ void My_Init()
 	light.useDefaultSettings();
 	light.getUniformLocations(program);
    
+
+	// configure shadow buffer
+	glGenFramebuffers(1, &shadowBuffer.fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer.fbo);
+
+	glGenTextures(1, &shadowBuffer.depthMap);
+	glBindTexture(GL_TEXTURE_2D, shadowBuffer.depthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowBuffer.depthMap, 0);
 
 }
 
@@ -171,19 +226,54 @@ void refreshView()
 
 void My_Display()
 {
+	mat4 scale_bias_matrix =
+		translate(mat4(), vec3(0.5f, 0.5f, 0.5f)) *
+		scale(mat4(), vec3(0.5f, 0.5f, 0.5f));
+	const float shadow_range = 300.0f;
+	mat4 light_proj_matrix = ortho(-shadow_range, shadow_range, -shadow_range, shadow_range, 5.0f, 1000.0f);
+	mat4 light_view_matrix = lookAt(vec3(300.0f, 300.0f, 300.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+	mat4 light_vp_matrix = light_proj_matrix * light_view_matrix;
 
+	mat4 shadow_sbpv_matrix = scale_bias_matrix * light_vp_matrix;
+
+	glUseProgram(program_depth);
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer.fbo);
+	glClear(GL_DEPTH_BUFFER_BIT);
+	glViewport(0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
+
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(4.0f, 4.0f);
+	glUniformMatrix4fv(glGetUniformLocation(program_depth, "mvp"), 1, GL_FALSE, value_ptr(light_vp_matrix));
+
+	model->render();
+
+	glDisable(GL_POLYGON_OFFSET_FILL);
+
+	//////////////////////////////////////////////////////////////////
+	
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glViewport(0, 0, viewportSize.width, viewportSize.height);
 	glUseProgram(program);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
-    // set uniforms
-    glUniformMatrix4fv(um4p, 1, GL_FALSE, value_ptr(projMat));
-    glUniformMatrix4fv(um4mv, 1, GL_FALSE, value_ptr(viewMat * modelMat));
-    
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, shadowBuffer.depthMap);
+	glUniform1i(glGetUniformLocation(program, "shadow_tex"), 0);
+
+	// set uniforms
+	glUniformMatrix4fv(um4p, 1, GL_FALSE, value_ptr(projMat));
+	glUniformMatrix4fv(um4mv, 1, GL_FALSE, value_ptr(viewMat * modelMat));
+
 	light.setUniforms();
-	
+
+	mat4 shadow_matrix = shadow_sbpv_matrix;
+	glUniformMatrix4fv(glGetUniformLocation(program, "shadow_matrix"), 1, GL_FALSE, value_ptr(shadow_matrix));
+
 	
     // render model
 	model->render();
+	
+
 
 	//UI
 	glUseProgram(0);
@@ -195,11 +285,18 @@ void My_Display()
 
 void My_Reshape(int width, int height)
 {
+	viewportSize.width = width;
+	viewportSize.height = height;
 	glViewport(0, 0, width, height);
     
     float viewportAspect = (float)width / (float)height;
     projMat = perspective(radians(60.0f), viewportAspect, 0.1f, 1000.0f);
     refreshView();
+
+
+	
+	matrices.eye.proj = perspective(radians(50.0f), viewportAspect, 0.1f, 1000.0f);
+	matrices.eye.view = lookAt(vec3(0.0f, 0.0f, 40.0f), vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
 }
 
 void My_Timer(int val)
